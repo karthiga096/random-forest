@@ -8,19 +8,16 @@ st.set_page_config(page_title="Student Grade Prediction")
 
 st.title("🎓 Student Grade Prediction using Random Forest")
 
-# Try loading CSV automatically
+# ---- Load dataset safely ----
 file_path = "StudentMarksDataset.csv"
 
 if os.path.exists(file_path):
     df = pd.read_csv(file_path)
 else:
-    uploaded_file = st.file_uploader("Upload StudentMarksDataset.csv", type="csv")
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-    else:
-        st.stop()   # 👈 stops silently (NO MESSAGE)
+    st.error("StudentMarksDataset.csv not found in project folder.")
+    st.stop()
 
-# Grade function
+# ---- Grade logic ----
 def grade_class(marks):
     if marks >= 90:
         return "A"
@@ -35,20 +32,21 @@ def grade_class(marks):
     else:
         return "F"
 
+# ---- Create Grade column ----
 df["Grade"] = df["Std_Marks"].apply(grade_class)
 
-# Encode categorical columns
+# ---- Encode categorical data ----
 le_branch = LabelEncoder()
 le_course = LabelEncoder()
 
 df["Std_Branch_enc"] = le_branch.fit_transform(df["Std_Branch"])
 df["Std_Course_enc"] = le_course.fit_transform(df["Std_Course"])
 
-# Features & target
+# ---- Features & Target ----
 X = df[["Std_Branch_enc", "Std_Course_enc", "Std_Marks"]]
 y = df["Grade"]
 
-# Train model
+# ---- Train Random Forest ----
 model = RandomForestClassifier(
     n_estimators=100,
     criterion="entropy",
@@ -56,16 +54,17 @@ model = RandomForestClassifier(
 )
 model.fit(X, y)
 
-# User input UI
+# ---- User Input UI ----
 st.subheader("Enter Student Details")
 
 branch = st.selectbox("Branch", df["Std_Branch"].unique())
 course = st.selectbox("Course", df["Std_Course"].unique())
 marks = st.slider("Marks", 0, 100, 75)
 
+# ---- Prediction ----
 if st.button("Predict Grade"):
     b = le_branch.transform([branch])[0]
     c = le_course.transform([course])[0]
+    pred = model.predict([[b, c, marks]])
 
-    prediction = model.predict([[b, c, marks]])
-    st.success(f"🎯 Predicted Grade: **{prediction[0]}**")
+    st.success(f"🎯 Predicted Grade: **{pred[0]}**")
